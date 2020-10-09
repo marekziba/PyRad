@@ -46,6 +46,9 @@ class PolarVolume(ABC):
         cappi[cappi == 0.0] = np.nan
         return cappi
 
+    def getDimensions(self):
+        return (self.nrays, self.nbins)
+
     @abstractmethod
     def getPPI(self, n, raw=False): pass
 
