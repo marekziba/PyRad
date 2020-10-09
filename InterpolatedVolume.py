@@ -27,7 +27,7 @@ class InterpolatedVolume:
             return False
         return True
 
-    def getCmax(self, bounds = None):
+    def __getIndexes(self, bounds):
         hmin = self.__hmin * 1000
         hmax = self.__hmax * 1000
         if bounds is not None:
@@ -39,24 +39,20 @@ class InterpolatedVolume:
 
         startIdx = next(x for x, val in enumerate(self.__levels) if val >= hmin)
         stopIdx = len(self.__levels) - next(x for x, val in enumerate(reversed(self.__levels)) if val <= hmax)
+        return (startIdx, stopIdx)
+
+
+    def getCmax(self, bounds = None):
+        startIdx, stopIdx = self.__getIndexes(bounds)
         print("CMAX ({},{})".format(startIdx, stopIdx))
         cmax = np.max(self.data[startIdx:stopIdx], axis=0)
         cmax[cmax == -999.0] = np.nan
         return cmax
 
     def getVIL(self, bounds=None):
-        hmin = self.__hmin * 1000
-        hmax = self.__hmax * 1000
-        if bounds is not None:
-            if not self.__validateProductBounds(bounds):
-                raise ValueError("Specified boundary exceeds volume dimensions")
-            else:
-                hmin = bounds[0] * 1000
-                hmax = bounds[1] * 1000
-
-        startIdx = next(x for x, val in enumerate(self.__levels) if val >= hmin)
-        stopIdx = len(self.__levels) - next(x for x, val in enumerate(reversed(self.__levels)) if val <= hmax)
+        startIdx, stopIdx = self.__getIndexes(bounds)
         data = self.data.copy()
+        data = data[startIdx:stopIdx]
         vil = ((10 ** (data / 10)) / 24000) ** (1 / 1.82)
         nodata = ((10 ** (-999.0 / 10)) / 24000) ** (1 / 1.82)
         vil[vil == nodata] = 0.0
