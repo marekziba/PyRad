@@ -8,7 +8,7 @@ class InterpolatedVolume:
         self.__vres = vres
         nlevs = int((hmax - hmin)/vres)
         nrays, nbins = volume.getDimensions()
-        dims = (nlevs, volume.nrays, volume.nbins)
+        dims = (nlevs, nrays, nbins)
         self.data = np.full(dims, 0.0)
         self.__levels = []
         for i in range(nlevs):
