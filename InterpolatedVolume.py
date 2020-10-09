@@ -15,7 +15,8 @@ class InterpolatedVolume:
             h = i * vres * 1000     #converting from km to meters
             self.data[i, :, :] = volume.getCappi(h,pseudo=False)
             self.__levels.append(h)
-        print(self.__levels)
+        #print(self.__levels)
+        self.data[np.isnan(self.data)] = -999.0
 
     def __validateProductBounds(self, bounds):
         if len(bounds) != 2:
@@ -27,16 +28,38 @@ class InterpolatedVolume:
         return True
 
     def getCmax(self, bounds = None):
-        hmin = self.__hmin
-        hmax = self.__hmax
+        hmin = self.__hmin * 1000
+        hmax = self.__hmax * 1000
         if bounds is not None:
             if not self.__validateProductBounds(bounds):
                 raise ValueError("Specified boundary exceeds volume dimensions")
             else:
-                hmin = bounds[0]
-                hmax = bounds[1]
+                hmin = bounds[0] * 1000
+                hmax = bounds[1] * 1000
 
         startIdx = next(x for x, val in enumerate(self.__levels) if val >= hmin)
         stopIdx = len(self.__levels) - next(x for x, val in enumerate(reversed(self.__levels)) if val <= hmax)
+        print("CMAX ({},{})".format(startIdx, stopIdx))
         cmax = np.max(self.data[startIdx:stopIdx], axis=0)
+        cmax[cmax == -999.0] = np.nan
         return cmax
+
+    def getVIL(self, bounds=None):
+        hmin = self.__hmin * 1000
+        hmax = self.__hmax * 1000
+        if bounds is not None:
+            if not self.__validateProductBounds(bounds):
+                raise ValueError("Specified boundary exceeds volume dimensions")
+            else:
+                hmin = bounds[0] * 1000
+                hmax = bounds[1] * 1000
+
+        startIdx = next(x for x, val in enumerate(self.__levels) if val >= hmin)
+        stopIdx = len(self.__levels) - next(x for x, val in enumerate(reversed(self.__levels)) if val <= hmax)
+        data = self.data.copy()
+        vil = ((10 ** (data / 10)) / 24000) ** (1 / 1.82)
+        nodata = ((10 ** (-999.0 / 10)) / 24000) ** (1 / 1.82)
+        vil[vil == nodata] = 0.0
+        vil = np.sum(vil, axis=0)
+        vil[vil == 0.0] = np.nan
+        return vil
