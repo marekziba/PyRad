@@ -47,13 +47,14 @@ class InterpolatedVolume:
         startIdx, stopIdx = self.__getIndexes(bounds)
         data = self.data.copy()
         data[data == -999.0] = 0.0
-        print("CMAX ({},{})".format(startIdx, stopIdx))
+
         if not absoluteMax:
             cmax = np.max(data[startIdx:stopIdx], axis=0)
         else:
             maxArray = np.max(data[startIdx:stopIdx], axis=0)
             minArray = np.min(data[startIdx:stopIdx], axis=0)
             cmax = np.where(maxArray < abs(minArray), minArray, maxArray)
+
         cmax[cmax == 0.0] = np.nan
 
         if raw:
