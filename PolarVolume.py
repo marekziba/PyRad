@@ -5,7 +5,7 @@ from PolarProduct import *
 import utils as u
 
 class PolarVolume(ABC):
-    def getCappi(self, cappi_h, pseudo=True):
+    def getCappi(self, cappi_h, pseudo=True, raw=False):
         cappi = np.full((self.nrays, self.nbins), np.nan)
         rh = np.full((self.numele, self.nbins), 0.0)
 
@@ -28,6 +28,7 @@ class PolarVolume(ABC):
             else:
                 cappi[:, nbin] = np.nan
             nbin = nbin + 1
+        startrange = nbin * self.rangestep
         for ele in range(0, self.numele):
             ele = ele + 1
             pos = self.numele - ele
@@ -36,6 +37,7 @@ class PolarVolume(ABC):
                                       abs_rh[pos + 1, nbin]) / (abs_rh[pos, nbin] + abs_rh[pos + 1, nbin])
                 if nbin < 249:
                     nbin = nbin + 1
+        stoprange = nbin * self.rangestep
         if nbin < 249:
             # print("nbin<249")
             for nbin in range(nbin, 250):
@@ -44,7 +46,18 @@ class PolarVolume(ABC):
                 else:
                     cappi[:, nbin] = np.nan
         cappi[cappi == 0.0] = np.nan
-        return cappi
+
+        if raw:
+            return cappi
+        else:
+            volumeMetadata = self.getVolumeMetadata()
+
+            productMetadata = dict()
+            productMetadata['height'] = cappi_h
+            productMetadata['startrange'] = startrange
+            productMetadata['stoprange'] = stoprange
+
+            return PolarCAPPI(cappi, volumeMetadata, productMetadata)
 
     def getDimensions(self):
         return (self.nrays, self.nbins)
@@ -110,23 +123,23 @@ class Rb5Volume(PolarVolume):
         if nan:
             data[data == datamin] = float('NaN')
 
-        metadata = dict()
-        metadata['anglestep'] = 360 / azirange
-        metadata['rangestep'] = rangestep
-        metadata['min'] = datamin
-        metadata['max'] = datamax
-        metadata['radid'] = self.rbdict['volume']['sensorinfo']['@id']
-        metadata['radname'] = self.rbdict['volume']['sensorinfo']['@name']
-        metadata['datetime'] = self.rbdict['volume']['scan']['@time'] + " " + self.rbdict['volume']['scan']['@date']
-        metadata['dtype'] = self.rbdict['volume']['scan']['slice'][elevation]['slicedata']['rawdata']['@type']
+        # metadata = dict()
+        # metadata['anglestep'] = 360 / azirange
+        # metadata['rangestep'] = rangestep
+        # metadata['min'] = datamin
+        # metadata['max'] = datamax
+        # metadata['radid'] = self.rbdict['volume']['sensorinfo']['@id']
+        # metadata['radname'] = self.rbdict['volume']['sensorinfo']['@name']
+        # metadata['datetime'] = self.rbdict['volume']['scan']['@time'] + " " + self.rbdict['volume']['scan']['@date']
+        # metadata['dtype'] = self.rbdict['volume']['scan']['slice'][elevation]['slicedata']['rawdata']['@type']
+
+        volumeMetadata = self.getVolumeMetadata()
 
         productMetadata = dict()
         productMetadata['elevation'] = self.rbdict['volume']['scan']['slice'][elevation]['posangle']
         productMetadata['tilt'] = elevation
 
-        ppr = PolarPPI(data, metadata, productMetadata)
-        # ppr.datamin = datamin
-        # ppr.datamax = datamax
+        ppr = PolarPPI(data, volumeMetadata, productMetadata)
 
         return ppr
 
@@ -162,7 +175,7 @@ class Rb5Volume(PolarVolume):
         self.numele = int(self.rbdict['volume']['scan']['pargroup']['numele'])
         self.stoprange = float(self.rbdict['volume']['scan']['pargroup']['stoprange'])
         self.rangestep = float(self.rbdict['volume']['scan']['pargroup']['rangestep'])
-        self.anglestep = float(self.rbdict['volume']['scan']['pargroup']['rangestep'])
+        self.anglestep = float(self.rbdict['volume']['scan']['pargroup']['anglestep'])
         try:
             self.dtype = self.rbdict['volume']['scan']['slice'][0]['slicedata']['rawdata']['@type']
         except:

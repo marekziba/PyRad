@@ -1,4 +1,5 @@
 from PolarVolume import PolarVolume
+from PolarProduct import *
 import numpy as np
 
 
@@ -15,7 +16,7 @@ class InterpolatedVolume:
         self.__levels = []
         for i in range(nlevs):
             h = i * vres * 1000  # converting from km to meters
-            self.data[i, :, :] = volume.getCappi(h, pseudo=False)
+            self.data[i, :, :] = volume.getCappi(h, pseudo=False, raw=True)
             self.__levels.append(h)
         self.data[np.isnan(self.data)] = -999.0
 
@@ -42,7 +43,7 @@ class InterpolatedVolume:
         stopIdx = len(self.__levels) - next(x for x, val in enumerate(reversed(self.__levels)) if val <= hmax)
         return (startIdx, stopIdx)
 
-    def getCmax(self, bounds=None, absoluteMax=True):
+    def getCmax(self, bounds=None, absoluteMax=True, raw=False):
         startIdx, stopIdx = self.__getIndexes(bounds)
         data = self.data.copy()
         data[data == -999.0] = 0.0
@@ -55,10 +56,24 @@ class InterpolatedVolume:
             cmax = np.where(maxArray < abs(minArray), minArray, maxArray)
         cmax[cmax == 0.0] = np.nan
 
+        if raw:
+            return cmax
+        else:
+            volumeMetadata = self.__volume.getVolumeMetadata()
 
-        return cmax
+            productMetadata = dict()
+            if bounds is not None:
+                productMetadata['hmin'] = bounds[0]
+                productMetadata['hmax'] = bounds[1]
+            else:
+                productMetadata['hmin'] = self.__hmin
+                productMetadata['hmax'] = self.__hmax
 
-    def getVIL(self, bounds=None):
+            polarCmax = PolarCMAX(cmax, volumeMetadata, productMetadata)
+
+            return polarCmax
+
+    def getVIL(self, bounds=None, raw=False):
         startIdx, stopIdx = self.__getIndexes(bounds)
         data = self.data.copy()
         data = data[startIdx:stopIdx]
@@ -67,4 +82,20 @@ class InterpolatedVolume:
         vil[vil == noData] = 0.0
         vil = np.sum(vil, axis=0)
         vil[vil == 0.0] = np.nan
-        return vil
+
+        if raw:
+            return vil
+        else:
+            volumeMetadata = self.__volume.getVolumeMetadata()
+
+            productMetadata = dict()
+            if bounds is not None:
+                productMetadata['hmin'] = bounds[0]
+                productMetadata['hmax'] = bounds[1]
+            else:
+                productMetadata['hmin'] = self.__hmin
+                productMetadata['hmax'] = self.__hmax
+
+            polarVil = PolarVIL(vil, volumeMetadata, productMetadata)
+
+            return polarVil

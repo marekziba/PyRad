@@ -31,6 +31,7 @@ class PolarProduct:
         assert (dim % 2 == 0)
         assert (self.anglestep is not None)
         assert (self.rangestep is not None)
+        print("anglestep = {}, dataDims = {}".format(self.anglestep, self.data.shape))
 
         scanRange = self.nbins * self.rangestep
         diff = (2 * scanRange) / dim
