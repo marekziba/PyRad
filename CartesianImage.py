@@ -12,7 +12,7 @@ class CartesianImage:
         self.dtype = ppi.dtype
         self.dim = dim
 
-        self.scanRange = (ppi.bins * ppi.rangestep) * 1000
+        self.scanRange = (ppi.nbins * ppi.rangestep) * 1000
         diff = (2 * self.scanRange) / dim
         self.__x = self.__y = np.arange(-self.scanRange, self.scanRange, diff)
         self.__xx, self.__yy = np.meshgrid(self.__x, self.__y)
