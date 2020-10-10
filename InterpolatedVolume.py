@@ -7,6 +7,7 @@ class InterpolatedVolume:
         self.__hmin = hmin
         self.__hmax = hmax
         self.__vres = vres
+        self.__volume = volume
         nlevs = int((hmax - hmin) / vres)
         nrays, nbins = volume.getDimensions()
         dims = (nlevs, nrays, nbins)
@@ -53,6 +54,8 @@ class InterpolatedVolume:
             minArray = np.min(data[startIdx:stopIdx], axis=0)
             cmax = np.where(maxArray < abs(minArray), minArray, maxArray)
         cmax[cmax == 0.0] = np.nan
+
+
         return cmax
 
     def getVIL(self, bounds=None):

@@ -12,11 +12,8 @@ class PolarProduct:
         self.dtype = metadata['dtype']
         self.anglestep = metadata['anglestep']
         self.rangestep = metadata['rangestep']
-        self.datamin = metadata['min']
-        self.datamax = metadata['max']
         self.radar = metadata['radname']
         self.radID = metadata['radid']
-        self.elevation = metadata['elevation']
         self.__date = dt.datetime.strptime(metadata['datetime'], "%H:%M:%S %Y-%m-%d")
 
     def resample(self, dimension):
@@ -43,3 +40,36 @@ class PolarProduct:
 
     def nanify(self):
         self.data[self.data == self.datamin] = np.nan
+
+
+class PolarPPI(PolarProduct):
+    def __init__(self, data, volumeMetadata, productMetadata):
+        super().__init__(data, volumeMetadata)
+
+        self.elevation = productMetadata["elevation"]
+        self.tilt = productMetadata["tilt"]
+
+
+class PolarCAPPI(PolarProduct):
+    def __init__(self, data, volumeMetadata, productMetadata):
+        super().__init__(data, volumeMetadata)
+
+        self.height = productMetadata["height"]
+        self.rmin = productMetadata["startrange"]
+        self.rmax = productMetadata["stoprange"]
+
+
+class PolarCMAX(PolarProduct):
+    def __init__(self, data, volumeMetadata, productMetadata):
+        super().__init__(data, volumeMetadata)
+
+        self.hmin = productMetadata["hmin"]
+        self.hmax = productMetadata["hmax"]
+
+
+class PolarVIL(PolarProduct):
+    def __init__(self, data, volumeMetadata, productMetadata):
+        super().__init__(data, volumeMetadata)
+
+        self.hmin = productMetadata["hmin"]
+        self.hmax = productMetadata["hmax"]

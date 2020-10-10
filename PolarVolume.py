@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 import wradlib as wrl
-from PolarProduct import PolarProduct
+from PolarProduct import *
 import utils as u
 
 class PolarVolume(ABC):
@@ -54,6 +54,12 @@ class PolarVolume(ABC):
 
     @abstractmethod
     def date(self): pass
+
+    @abstractmethod
+    def getVolumeMetadata(self): pass
+
+    @abstractmethod
+    def _getProjection(self): pass
 
 
 
@@ -109,17 +115,18 @@ class Rb5Volume(PolarVolume):
         metadata['rangestep'] = rangestep
         metadata['min'] = datamin
         metadata['max'] = datamax
-        metadata['numslice'] = elevation
         metadata['radid'] = self.rbdict['volume']['sensorinfo']['@id']
         metadata['radname'] = self.rbdict['volume']['sensorinfo']['@name']
         metadata['datetime'] = self.rbdict['volume']['scan']['@time'] + " " + self.rbdict['volume']['scan']['@date']
-        metadata['elevation'] = self.rbdict['volume']['scan']['slice'][elevation]['posangle']
         metadata['dtype'] = self.rbdict['volume']['scan']['slice'][elevation]['slicedata']['rawdata']['@type']
 
-        ppr = PolarProduct(data, metadata)
-        ppr.anglestep = azires
-        ppr.datamin = datamin
-        ppr.datamax = datamax
+        productMetadata = dict()
+        productMetadata['elevation'] = self.rbdict['volume']['scan']['slice'][elevation]['posangle']
+        productMetadata['tilt'] = elevation
+
+        ppr = PolarPPI(data, metadata, productMetadata)
+        # ppr.datamin = datamin
+        # ppr.datamax = datamax
 
         return ppr
 
@@ -132,12 +139,35 @@ class Rb5Volume(PolarVolume):
     def date(self):
         return self.rbdict['volume']['scan']['@time'] + " " + self.rbdict['volume']['scan']['@date']
 
+    def getVolumeMetadata(self):
+        metadata = dict()
+        metadata['dtype'] = self.dtype
+        metadata['anglestep'] = self.anglestep
+        metadata['rangestep'] = self.rangestep
+        metadata['radname'] = self.rbdict['volume']['sensorinfo']['@name']
+        metadata['radid'] = self.sensor
+        metadata['datetime'] = self.date()
+        return metadata
+
+    def _getProjection(self):
+        self.lon = float(self.rbdict['volume']['sensorinfo']['lon'])
+        self.lat = float(self.rbdict['volume']['sensorinfo']['lat'])
+        self.proj4_def = "+proj=aeqd +lat_0=" + str(self.lat) + " +lon_0=" + str(
+            self.lon) + " +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
+
     def __init__(self, path, aziCount = 360):
         self.rbdict = wrl.io.read_rainbow(path)
+        self._getProjection()
         self.ppis = []
         self.numele = int(self.rbdict['volume']['scan']['pargroup']['numele'])
         self.stoprange = float(self.rbdict['volume']['scan']['pargroup']['stoprange'])
         self.rangestep = float(self.rbdict['volume']['scan']['pargroup']['rangestep'])
+        self.anglestep = float(self.rbdict['volume']['scan']['pargroup']['rangestep'])
+        try:
+            self.dtype = self.rbdict['volume']['scan']['slice'][0]['slicedata']['rawdata']['@type']
+        except:
+            self.dtype = self.rbdict['volume']['scan']['slice']['slicedata']['rawdata']['@type']
+        self.sensor = self.rbdict['volume']['sensorinfo']['@id']
         #self.voldata = np.full((self.numele, aziCount, nbins))
         bins = []
         for i in range(self.numele):
